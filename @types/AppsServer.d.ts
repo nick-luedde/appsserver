@@ -1,5 +1,26 @@
 type AppsStatusCode = 200 | 201 | 400 |401 | 403 | 404 | 500 | 999;
+type STATUS_CODE_ENUM = {
+  SUCCESS: 200,
+  CREATED: 201,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  SERVER_ERROR: 500
+};
 type AppsMimeType = 'application/json' | 'text/html' | 'text/csv' | 'js/object' | 'data/raw';
+type MIME_TYPE_ENUM = {
+  JSON: 'application/json',
+  HTML: 'text/html',
+  CSV: 'text/csv',
+  JS: 'js/object',
+  RAW: 'data/raw'
+};
+type AppsServerOptions = {
+  debug?: boolean;
+};
+type AppsRequestMethod = 'get' | 'post' | 'delete';
+type AppsServerParams = { [key: string]: string };
 
 interface AppsServer {
   // STATUS_CODE;
@@ -17,21 +38,21 @@ interface AppsServer {
 };
 
 interface AppsRequest {
-  method: 'get' | 'post' | 'delete';
+  method: AppsRequestMethod;
   headers?: StringObject;
   by?: string;
   auth?: object;
   rawRoute?: string;
   route: string;
   params?: StringObject;
-  body?: object | GoogleAppsScript.HTML.HtmlOutput | null
+  body?: any
 };
 
 interface AppsResponse {
   status: AppsStatusCode;
   type: AppsMimeType;
   headers: StringObject;
-  body?: object | null;
+  body?: any;
   toType: () => string | object | null | undefined | AppsResponse
 };
 

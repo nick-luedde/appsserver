@@ -6,13 +6,13 @@ class AppsServer {
    *   - The body of the response will be either json type, or html type content
    * Requests that error will return a json response with an error prop
    *   - The error of the response will be an object with at minimum a message, but may also have a cause property
-   * @param {*} options 
+   * @param {AppsServerOptions} options 
    */
-  static create(options = {}) {
+  static create(options: AppsServerOptions = {}) {
     //TODO: default options
     const debug = options.debug || false;
 
-    const STATUS_CODE = {
+    const STATUS_CODE: STATUS_CODE_ENUM = {
       SUCCESS: 200,
       CREATED: 201,
       BAD_REQUEST: 400,
@@ -22,7 +22,7 @@ class AppsServer {
       SERVER_ERROR: 500
     };
 
-    const MIME_TYPES = {
+    const MIME_TYPES: MIME_TYPE_ENUM = {
       JSON: 'application/json',
       HTML: 'text/html',
       CSV: 'text/csv',
@@ -30,12 +30,8 @@ class AppsServer {
       RAW: 'data/raw'
     };
 
-    /**
-     * @param {String} route 
-     */
-    const parseRouteWithParams = (route) => {
-      /** @type {StringObject} */
-      const params = {};
+    const parseRouteWithParams = (route: string) => {
+      const params: AppsServerParams = {};
       const [routestr, paramstr] = route.split('?');
       if (!paramstr)
         return {
@@ -60,7 +56,7 @@ class AppsServer {
      * @param {AppsRequest} req - request obj
      * @param {AppsRoutes} method - route methods
      */
-    const findTokenRoute = (req, method) => {
+    const findTokenRoute = (req: AppsRequest, method: AppsRoutes) => {
       const tokenRoutes = Object.keys(method).filter(key => key.includes(':'));
 
       for (const route of tokenRoutes) {
@@ -76,21 +72,20 @@ class AppsServer {
     };
 
     // https://stackoverflow.com/questions/3561493/is-there-a-regexp-escape-function-in-javascript/3561711#3561711
-    const escapeStringForRegex = (str) => str.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
+    const escapeStringForRegex = (str: string) => str.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
 
     /**
      * Tokenizes a registered route so that it can be used to match a requested route
      * @param {string} route - registered route to tokenize for matching
      */
-    const tokenizeRoute = (route) => {
+    const tokenizeRoute = (route: string) => {
       const parts = route.split('/');
       // if theres a part that starts with ':' it means its a route param,
       // so that means we have to pick that part out of the actual route and get that as a param somehow...
       // So the regex could become => :param replace with [^/]* then matching...
       // and the param could remember where it came from (before and after uri, then match within...)
 
-      /** @type {Array<String[]>} */
-      const tokens = [];
+      const tokens: string[][] = [];
       parts.forEach((p, i) => {
         if (p.startsWith(':')) {
           tokens.push([parts[i - 1] || '', p, parts[i + 1] || '']);
@@ -99,19 +94,19 @@ class AppsServer {
 
       // now we can match the route still...
       const matcher = route.replace(/:[^/]*/g, '[^/]*');
-      const isMatch = (/** @type {String} */ sent) => new RegExp(matcher).test(sent);
+      const isMatch = (sent: string) => new RegExp(matcher).test(sent);
 
       // and when we get a route, we can match the values
-      const paramsFromTokens = (/** @type {String} */sent) => {
-        /** @type {StringObject} */
-        const params = {};
+      const paramsFromTokens = (sent: string) => {
+
+        const params: AppsServerParams = {};
         tokens.forEach(t => {
           const key = t[1].replace(':', '');
           const before = t[0];
           const after = t[2];
 
           const [match] = (sent.match(`(?<=.*/${before !== undefined ? escapeStringForRegex(before) : ''}/)([^/]*)(?=/?${after !== undefined ? escapeStringForRegex(after) : ''}.*)`) || []);
-          params[key] = decodeURIComponent(match);
+          params[key] = decodeURIComponent(match || '');
         });
 
         return params;
@@ -121,69 +116,43 @@ class AppsServer {
 
     };
 
-    /**
-     * @param {String} pattern 
-     * @param {String} route 
-     */
-    const matchRoute = (pattern, route) => new RegExp(pattern).test(route);
+    const matchRoute = (pattern: string, route: string) => new RegExp(pattern).test(route);
 
-    /** @type {AppsHandlerFunction[]} */
-    const middleware = [];
-    /**
-     * @param {String} route 
-     * @param {AppsHandlerFunction} fn 
-     */
-    const use = (route, fn) => {
+    const middleware: AppsHandlerFunction[] = [];
+
+    const use = (route: string, fn: AppsHandlerFunction) => {
       const matcher = typeof route === 'function'
-      ? () => true
-      : (requested) => matchRoute(route, requested);
+        ? () => true
+        : (requested: string) => matchRoute(route, requested);
 
-      /**
-       * @param {AppsRequest} req 
-       * @param {AppsInternalResponse} res 
-       * @param {AppsNextMw} next 
-       */
-      const mw = (req, res, next) =>
+      const mw = (req: AppsRequest, res: AppsInternalResponse, next: AppsNextMw) =>
         matcher(req.route)
           ? fn(req, res, next)
           : next();
       middleware.push(mw);
     };
 
-    /** @type {AppsErrorHandler[]} */
-    const errors = [];
-    const error = (/** @type {AppsErrorHandler} */ fn) => errors.push(fn);
+    const errors: AppsErrorHandler[] = [];
+    const error = (fn: AppsErrorHandler) => errors.push(fn);
 
-    /** @type {AppsRoutes} */
-    const gets = {};
-    /**
-     * @param {String} route 
-     * @param  {...AppsHandlerFunction} fns 
-     */
-    const get = (route, ...fns) => {
+    const gets: AppsRoutes = {};
+
+    const get = (route: string, ...fns: AppsHandlerFunction[]) => {
       gets[route] = fns;
     };
 
-    /** @type {AppsRoutes} */
-    const posts = {};
-    /**
-     * @param {String} route 
-     * @param  {...AppsHandlerFunction} fns 
-     */
-    const post = (route, ...fns) => {
+    const posts: AppsRoutes = {};
+
+    const post = (route: string, ...fns: AppsHandlerFunction[]) => {
       posts[route] = fns;
     };
 
-    /** @type {AppsRoutes} */
-    const deletes = {};
-    /**
-     * @param {string} route 
-     * @param  {...AppsHandlerFunction} fns 
-     */
-    const del = (route, ...fns) => {
+    const deletes: AppsRoutes = {};
+
+    const del = (route: string, ...fns: AppsHandlerFunction[]) => {
       deletes[route] = fns;
     };
-  
+
     const methods = {
       get: gets,
       post: posts,
@@ -219,8 +188,7 @@ class AppsServer {
      * Create new response obj
      */
     const response = () => {
-      /** @type {AppsResponse} */
-      const res = {
+      const res: AppsResponse = {
         status: 999,
         headers: {},
         type: MIME_TYPES.JSON,
@@ -228,33 +196,29 @@ class AppsServer {
         toType: () => {
           if (res.type === MIME_TYPES.JSON)
             return JSON.stringify(res);
-  
+
           if (res.type === MIME_TYPES.RAW)
             return res.body;
-  
+
           return res;
         }
       };
 
       const isSuccess = () => res.status >= 200 && res.status < 300;
 
-      /** @template T @param {T} body */
-      const send = (body) => {
+      const send = <T>(body: T) => {
         res.body = body;
         return res;
       };
 
-      /**
-       * @param {object} content 
-       * @param {string} content.html 
-       * @param {string} content.file 
-       * @param {object} props 
-       */
-      const render = ({ html, file }, props) => {
+      const render = ({ html, file }: { html: string, file: string }, props: object) => {
         const template = html
+          // @ts-ignore
           ? HtmlService.createTemplate(html)
           : file
+            // @ts-ignore
             ? HtmlService.createTemplateFromFile(file)
+            // @ts-ignore
             : HtmlService.createTemplate('');
 
         template.props = props;
@@ -267,17 +231,17 @@ class AppsServer {
         return res;
       };
 
-      const type = (/** @type {AppsMimeType} */ ty) => {
+      const type = (ty: AppsMimeType) => {
         res.type = ty;
         return api;
       };
 
-      const status = (/** @type {AppsStatusCode} */ code) => {
+      const status = (code: AppsStatusCode) => {
         res.status = code;
         return api;
       };
 
-      const headers = (/** @type {StringObject} */ hdrs) => {
+      const headers = (hdrs: AppsServerParams) => {
         res.headers = {
           ...res.headers,
           ...hdrs
@@ -302,25 +266,22 @@ class AppsServer {
 
     /**
      * Middleware stack composer
-     * @param {AppsRequest} req - request
-     * @param {AppsInternalResponse} res - response
-     * @param {AppsHandlerFunction[]} handlers - route handlers
      */
-    const mwstack = (req, res, handlers) => {
+    const mwstack = (req: AppsRequest, res: AppsInternalResponse, handlers: AppsHandlerFunction[]) => {
       let index = 0;
       const all = [
         ...middleware,
         ...handlers
       ];
 
-      const nxt = (/** @type {Number | null} */ i) => {
+      const nxt = (i: number): any => {
         index = i;
 
         let mw = all[index];
         if (!mw) {
           // If we have made it to the last element of the stack (which will be the route handler, it is undefined, return NOT_FOUND_RESPONSE)
           if (index === all.length)
-            return res.status(STATUS_CODE.NOT_FOUND).send({ message: `${req.route} not a valid route!` })
+            return res.status(STATUS_CODE.NOT_FOUND).send({ message: `${req.route} not a valid route!` });
           else
             throw new Error(`Something went wrong in the mw stack for index ${index}`);
         }
@@ -333,12 +294,11 @@ class AppsServer {
 
     /**
      * Handles a request from the client
-     * @param {AppsRequest} req - request options
-     * @returns {AppsResponse} response 
      */
-    const request = (req) => {
+    const request = (req: AppsRequest) => {
 
       try {
+        // @ts-ignore
         req.by = Session.getActiveUser().getEmail();
         req.auth = {};
 
@@ -353,8 +313,7 @@ class AppsServer {
         };
 
         const res = response();
-        /** @type {AppsRoutes} */
-        const method = methods[String(req.method).toLowerCase()] || {};
+        const method: AppsRoutes = methods[String(req.method).toLowerCase() as AppsRequestMethod] || {};
 
         let handler = method[req.route];
         if (!handler)
@@ -366,8 +325,7 @@ class AppsServer {
 
         return res.res;
       } catch (err) {
-        /** @type {AppsErrorLike} */
-        const error = err;
+        const error: AppsErrorLike = err as AppsErrorLike;
         const res = response();
         console.error(error);
         console.error(error.stack);
@@ -378,16 +336,15 @@ class AppsServer {
             message: error.code ? error.message : 'Something went wrong!',
             stack: debug ? error.stack : undefined
           });
-    
+
         errors.forEach(handler => {
           try {
             handler(error, req);
           } catch (inner) {
-            /** @type {AppsErrorLike} */
-            const handlerError = inner;
+            const handlerError: AppsErrorLike = inner as AppsErrorLike;
             console.error(handlerError);
             console.error(handlerError.stack);
-          } 
+          }
         });
 
         if (debug) {
@@ -404,9 +361,13 @@ class AppsServer {
      * Helper to handle client requests, call this from the top level "api" function in your app
      * @param {AppsRequest} req - request
      */
-    const handleClientRequest = (req = {}) => {
-      if (typeof req === 'string')
-        req = JSON.parse(req);
+    const handleClientRequest = (req: AppsRequest | string) => {
+      const parsed: Partial<AppsRequest> = !req
+        ? {}
+        : typeof req === 'string'
+          ? JSON.parse(req)
+          : req;
+
       //ignore any additional props of the request so we know the request is clean when it comes in
       const {
         method,
@@ -414,12 +375,12 @@ class AppsServer {
         route,
         params,
         body
-      } = req;
+      } = parsed;
 
       return request({
-        method,
+        method: method || 'get',
         headers,
-        route,
+        route: route || '',
         params,
         body
       }).toType();
@@ -427,9 +388,9 @@ class AppsServer {
 
     /**
      * Helper to handle doGet request (just call this with your server obj in your doGet fn)
-     * @param {GoogleAppsScript.Events.DoGet} event - Google Apps Script Request object
      */
-    const handleDoGet = (event = {}, { homeroute = '/' } = {}) => {
+    // @ts-ignore
+    const handleDoGet = (event: GoogleAppsScript.Events.DoGet = {}, { homeroute = '/' } = {}) => {
       const pathInfo = event.pathInfo === undefined ? '' : event.pathInfo
       const path = String(pathInfo).toLowerCase();
 
@@ -440,8 +401,10 @@ class AppsServer {
           params: event.parameter
         });
 
+        // @ts-ignore
         return ContentService
           .createTextOutput(response)
+          // @ts-ignore
           .setMimeType(ContentService.MimeType.JSON);
       }
 
@@ -454,12 +417,11 @@ class AppsServer {
       return content.body;
     };
 
-    // /**
-    //  * Helper to handle doPost request (just call this with your server obj in your doPost fn)
-    //  * @param {GoogleAppsScript.Events.DoPost} event - Google Apps Script Request object
-    //  */
-    /** @type {AppsServer['handleDoPost']} */
-    const handleDoPost = (event = {}) => {
+    /**
+     * Helper to handle doPost request (just call this with your server obj in your doPost fn)
+     */
+    // @ts-ignore
+    const handleDoPost = (event: GoogleAppsScript.Events.DoPost = {}) => {
       const pathInfo = event.pathInfo === undefined ? '' : event.pathInfo
       const fullPath = String(pathInfo).toLowerCase();
       const path = fullPath.startsWith('api/')
@@ -478,13 +440,14 @@ class AppsServer {
       const response = handleClientRequest({
         method: method || 'post',
         route: path,
-        type,
         body,
         params: event.parameter
       });
 
+      // @ts-ignore
       return ContentService
         .createTextOutput(response)
+        // @ts-ignore
         .setMimeType(ContentService.MimeType.JSON);
     };
 
@@ -508,7 +471,9 @@ class AppsServer {
 }
 
 class ApiError extends Error {
-  constructor(/** @type {String} */ message, { code = 400 } = {}) {
+  code: number;
+
+  constructor(message: string, { code = 400 } = {}) {
     super(message);
     this.code = code;
   }
