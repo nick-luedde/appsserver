@@ -198,7 +198,6 @@ class AppsServer {
                 };
                 return api;
             };
-            /** @type {AppsInternalResponse} */
             const api = {
                 locals: {},
                 isSuccess,
