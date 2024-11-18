@@ -23,17 +23,27 @@ type AppsRequestMethod = 'get' | 'post' | 'delete';
 type AppsServerParams = { [key: string]: string };
 
 interface AppsServer {
-  // STATUS_CODE;
-  // MIME_TYPES;
+  STATUS_CODE: STATUS_CODE_ENUM;
+  MIME_TYPES: MIME_TYPE_ENUM;
+  /** Prints route details */
   inspect: () => string;
+  /** Registers a middleware handler for the given route regex */
   use: (route: string, fn: AppsHandlerFunction) => void;
+  /** Registers an error handler (can have multiple) */
   error: (fn: AppsErrorHandler) => void;
+  /** Registers a get request handler */
   get: (route: string, ...fn: AppsHandlerFunction[]) => void;
+  /** Registers a post request handler */
   post: (route: string, ...fn: AppsHandlerFunction[]) => void;
+  /** Registers a delete request handler */
   delete: (route: string, ...fn: AppsHandlerFunction[]) => void;
+  /** Handles processing a request */
   request: (req: AppsRequest) => object;
-  handleClientRequest: (req: AppsRequest | string) => object;
+  /** Helper function for handling a request from the Apps Script client HTML app of a deployed web app */
+  handleClientRequest: (req: AppsRequest | string) => string | object | null | AppsResponse;
+  /** Helper function for handling a doGet request */
   handleDoGet: (event: GoogleAppsScript.Events.DoGet, options: { homeroute: string }) => GoogleAppsScript.HTML.HtmlOutput | GoogleAppsScript.Content.TextOutput;
+  /** Helper function for handling a doPost request */
   handleDoPost: (event: GoogleAppsScript.Events.DoPost) => GoogleAppsScript.Content.TextOutput
 };
 
@@ -53,16 +63,15 @@ interface AppsResponse {
   type: AppsMimeType;
   headers: StringObject;
   body?: any;
-  toType: () => string | object | null | undefined | AppsResponse
+  toType: () => string | object | null | AppsResponse
 };
 
 interface AppsInternalResponse {
-  // Internal request structure....
   res: AppsResponse;
   locals?: object;
   isSuccess: () => boolean;
   send: (body: object) => AppsResponse;
-  render: ({ html, file }: { html: string, file: string }, props: object) => AppsResponse;
+  render: ({ html, file }: { html?: string, file?: string }, props?: object) => AppsResponse;
   type: (ty: AppsMimeType) => AppsInternalResponse;
   status: (code: AppsStatusCode) => AppsInternalResponse;
   headers: (hdrs: StringObject) => AppsInternalResponse

@@ -8,7 +8,7 @@ class AppsServer {
    *   - The error of the response will be an object with at minimum a message, but may also have a cause property
    * @param {AppsServerOptions} options 
    */
-  static create(options: AppsServerOptions = {}) {
+  static create(options: AppsServerOptions = {}): AppsServer {
     //TODO: default options
     const debug = options.debug || false;
 
@@ -187,7 +187,7 @@ class AppsServer {
     /**
      * Create new response obj
      */
-    const response = () => {
+    const response = (): AppsInternalResponse => {
       const res: AppsResponse = {
         status: 999,
         headers: {},
@@ -211,14 +211,11 @@ class AppsServer {
         return res;
       };
 
-      const render = ({ html, file }: { html: string, file: string }, props: object) => {
+      const render = ({ html, file }: { html?: string, file?: string }, props?: object) => {
         const template = html
-          // @ts-ignore
           ? HtmlService.createTemplate(html)
           : file
-            // @ts-ignore
             ? HtmlService.createTemplateFromFile(file)
-            // @ts-ignore
             : HtmlService.createTemplate('');
 
         template.props = props;
@@ -249,7 +246,6 @@ class AppsServer {
         return api;
       };
 
-      /** @type {AppsInternalResponse} */
       const api = {
         locals: {},
         isSuccess,
@@ -298,7 +294,6 @@ class AppsServer {
     const request = (req: AppsRequest) => {
 
       try {
-        // @ts-ignore
         req.by = Session.getActiveUser().getEmail();
         req.auth = {};
 
@@ -389,8 +384,7 @@ class AppsServer {
     /**
      * Helper to handle doGet request (just call this with your server obj in your doGet fn)
      */
-    // @ts-ignore
-    const handleDoGet = (event: GoogleAppsScript.Events.DoGet = {}, { homeroute = '/' } = {}) => {
+    const handleDoGet = (event: GoogleAppsScript.Events.DoGet = {} as GoogleAppsScript.Events.DoGet, { homeroute = '/' } = {}) => {
       const pathInfo = event.pathInfo === undefined ? '' : event.pathInfo
       const path = String(pathInfo).toLowerCase();
 
@@ -401,10 +395,8 @@ class AppsServer {
           params: event.parameter
         });
 
-        // @ts-ignore
         return ContentService
-          .createTextOutput(response)
-          // @ts-ignore
+          .createTextOutput(String(response))
           .setMimeType(ContentService.MimeType.JSON);
       }
 
@@ -420,8 +412,7 @@ class AppsServer {
     /**
      * Helper to handle doPost request (just call this with your server obj in your doPost fn)
      */
-    // @ts-ignore
-    const handleDoPost = (event: GoogleAppsScript.Events.DoPost = {}) => {
+    const handleDoPost = (event: GoogleAppsScript.Events.DoPost = {} as GoogleAppsScript.Events.DoPost) => {
       const pathInfo = event.pathInfo === undefined ? '' : event.pathInfo
       const fullPath = String(pathInfo).toLowerCase();
       const path = fullPath.startsWith('api/')
@@ -438,20 +429,17 @@ class AppsServer {
         : event.postData.contents;
 
       const response = handleClientRequest({
-        method: method || 'post',
+        method: (method || 'post') as AppsRequestMethod,
         route: path,
         body,
         params: event.parameter
       });
 
-      // @ts-ignore
       return ContentService
-        .createTextOutput(response)
-        // @ts-ignore
+        .createTextOutput(String(response))
         .setMimeType(ContentService.MimeType.JSON);
     };
 
-    /** @type {AppsServer} */
     return {
       STATUS_CODE,
       MIME_TYPES,

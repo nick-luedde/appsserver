@@ -172,12 +172,9 @@ class AppsServer {
             };
             const render = ({ html, file }, props) => {
                 const template = html
-                    // @ts-ignore
                     ? HtmlService.createTemplate(html)
                     : file
-                        // @ts-ignore
                         ? HtmlService.createTemplateFromFile(file)
-                        // @ts-ignore
                         : HtmlService.createTemplate('');
                 template.props = props;
                 const output = template.evaluate();
@@ -242,7 +239,6 @@ class AppsServer {
          */
         const request = (req) => {
             try {
-                // @ts-ignore
                 req.by = Session.getActiveUser().getEmail();
                 req.auth = {};
                 req.params = req.params || {};
@@ -314,7 +310,6 @@ class AppsServer {
         /**
          * Helper to handle doGet request (just call this with your server obj in your doGet fn)
          */
-        // @ts-ignore
         const handleDoGet = (event = {}, { homeroute = '/' } = {}) => {
             const pathInfo = event.pathInfo === undefined ? '' : event.pathInfo;
             const path = String(pathInfo).toLowerCase();
@@ -324,10 +319,8 @@ class AppsServer {
                     route: path.slice(3),
                     params: event.parameter
                 });
-                // @ts-ignore
                 return ContentService
-                    .createTextOutput(response)
-                    // @ts-ignore
+                    .createTextOutput(String(response))
                     .setMimeType(ContentService.MimeType.JSON);
             }
             const content = request({
@@ -340,7 +333,6 @@ class AppsServer {
         /**
          * Helper to handle doPost request (just call this with your server obj in your doPost fn)
          */
-        // @ts-ignore
         const handleDoPost = (event = {}) => {
             const pathInfo = event.pathInfo === undefined ? '' : event.pathInfo;
             const fullPath = String(pathInfo).toLowerCase();
@@ -352,18 +344,15 @@ class AppsServer {
                 ? JSON.parse(event.postData.contents)
                 : event.postData.contents;
             const response = handleClientRequest({
-                method: method || 'post',
+                method: (method || 'post'),
                 route: path,
                 body,
                 params: event.parameter
             });
-            // @ts-ignore
             return ContentService
-                .createTextOutput(response)
-                // @ts-ignore
+                .createTextOutput(String(response))
                 .setMimeType(ContentService.MimeType.JSON);
         };
-        /** @type {AppsServer} */
         return {
             STATUS_CODE,
             MIME_TYPES,
